@@ -109,6 +109,10 @@ namespace rqt_rover_gui {
 
   signals:
 
+    void joystickForwardUpdate(double);
+    void joystickBackUpdate(double);
+    void joystickLeftUpdate(double);
+    void joystickRightUpdate(double);
     void updateObstacleCallCount(QString text);
 
   private slots:
