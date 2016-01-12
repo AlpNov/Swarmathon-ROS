@@ -844,9 +844,15 @@ void RoverGUIPlugin::buildSimulationButtonEventHandler()
     float collection_disk_radius = 0.5; // meters
     sim_mgr.addModel("collection_disk", "collection_disk", 0, 0, 0, collection_disk_radius);
 
-    int n_rovers_created = 0;
-    int n_rovers = 3;
-    if (ui.final_radio_button->isChecked()) n_rovers = 6;
+
+    int n_rovers = 1;
+    if (ui.two_radio_button->isChecked()) n_rovers = 2;
+    else if (ui.prelim_radio_button->isChecked()) n_rovers = 3;
+    else if (ui.final_radio_button->isChecked()) n_rovers = 6;
+
+    QString rovers[] = {"achilles","aeneas","ajax","diomedes","hector","paris"};
+    int rover_x[] ={0,-1,1,1,-1, 1};
+    int rover_y[] ={1, 0,0,1,-1,-1};
 
     QProgressDialog progress_dialog;
     progress_dialog.setWindowTitle("Creating rovers");
@@ -856,119 +862,66 @@ void RoverGUIPlugin::buildSimulationButtonEventHandler()
     progress_dialog.resize(500, 50);
     progress_dialog.show();
 
-    displayLogMessage("Adding rover achilles...");
-    return_msg = sim_mgr.addRover("achilles", 0, 1, 0);
-    displayLogMessage(return_msg);
-
-    displayLogMessage("Starting rover node for achilles...");
-    return_msg = sim_mgr.startRoverNode("achilles");
-    displayLogMessage(return_msg);
-
-    displayLogMessage("Adding rover aeneas...");
-    return_msg = sim_mgr.addRover("aeneas", -1, 0, 0);
-    displayLogMessage(return_msg);
-
-    displayLogMessage("Starting rover node for aeneas...");
-    return_msg = sim_mgr.startRoverNode("aeneas");
-    displayLogMessage(return_msg);
-
-    progress_dialog.setValue((++n_rovers_created)*100.0f/n_rovers);
-    qApp->processEvents(QEventLoop::ExcludeUserInputEvents);
-
-    progress_dialog.setValue((++n_rovers_created)*100.0f/n_rovers);
-    qApp->processEvents(QEventLoop::ExcludeUserInputEvents);
-
-    displayLogMessage("Adding rover ajax...");
-    return_msg = sim_mgr.addRover("ajax", 1, 0, 0);
-    displayLogMessage(return_msg);
-
-   displayLogMessage("Starting rover node for ajax...");
-   return_msg = sim_mgr.startRoverNode("ajax");
-   displayLogMessage(return_msg);
-
-   progress_dialog.setValue((++n_rovers_created)*100.0f/n_rovers);
-   qApp->processEvents(QEventLoop::ExcludeUserInputEvents);
-
-   if (ui.final_radio_button->isChecked())
-   {
-
-       displayLogMessage("Adding rover diomedes...");
-       return_msg = sim_mgr.addRover("diomedes", 1, 1, 0);
-       displayLogMessage(return_msg);
-
-       displayLogMessage("Starting rover node for diomedes...");
-       return_msg = sim_mgr.startRoverNode("diomedes");
-       displayLogMessage(return_msg);
-
-
-       displayLogMessage("Adding rover hector...");
-       return_msg = sim_mgr.addRover("hector", -1, -1, 0);
-       displayLogMessage(return_msg);
-
-       displayLogMessage("Starting rover node for hector...");
-       return_msg = sim_mgr.startRoverNode("hector");
-       displayLogMessage(return_msg);
-
-        progress_dialog.setValue((++n_rovers_created)*100.0f/n_rovers);
+    for (int n_rovers_created = 1; n_rovers_created <= n_rovers; n_rovers_created++) {
+        QString msg_1 = "Adding rover ";
+        QString msg_2 = "Starting rover node for ";
+        msg_1.append(rovers[n_rovers_created-1]);
+        msg_1.append("...");
+        displayLogMessage(msg_1);
+        return_msg = sim_mgr.addRover(rovers[n_rovers_created-1],rover_x[n_rovers_created-1],rover_y[n_rovers_created-1], 0);
+        displayLogMessage(return_msg);
+        msg_2.append(rovers[n_rovers_created-1]);
+        msg_2.append("...");
+        displayLogMessage(msg_2);
+        return_msg = sim_mgr.startRoverNode(rovers[n_rovers_created-1]);
+        displayLogMessage(return_msg);
+        progress_dialog.setValue((n_rovers_created)*100.0f/n_rovers);
         qApp->processEvents(QEventLoop::ExcludeUserInputEvents);
 
-        progress_dialog.setValue((++n_rovers_created)*100.0f/n_rovers);
-        qApp->processEvents(QEventLoop::ExcludeUserInputEvents);
+    }
 
-       displayLogMessage("Adding rover paris...");
-       return_msg = sim_mgr.addRover("paris", 1, -1, 0);
-       displayLogMessage(return_msg);
+    if (ui.powerlaw_distribution_radio_button->isChecked())
+    {
+        displayLogMessage("Adding powerlaw distribution of targets...");
+        return_msg = addPowerLawTargets();
+        displayLogMessage(return_msg);
+    }
+    else if (ui.uniform_distribution_radio_button->isChecked())
+    {
+        displayLogMessage("Adding uniform distribution of targets...");
+        return_msg = addUniformTargets();
+        displayLogMessage(return_msg);
+    }
+    else if (ui.clustered_distribution_radio_button->isChecked())
+    {
+        displayLogMessage("Adding clustered distribution of targets...");
+        return_msg = addClusteredTargets();
+        displayLogMessage(return_msg);
+    }
 
-       displayLogMessage("Starting rover node for paris...");
-       return_msg = sim_mgr.startRoverNode("paris");
-       displayLogMessage(return_msg);
+    // add walls given nw corner (x,y) and height and width (in meters)
 
-        progress_dialog.setValue((++n_rovers_created)*100.0f/n_rovers);
-        qApp->processEvents(QEventLoop::ExcludeUserInputEvents);
+    //addWalls(-arena_dim/2, -arena_dim/2, arena_dim, arena_dim);
 
-}
-   if (ui.powerlaw_distribution_radio_button->isChecked())
-   {
-       displayLogMessage("Adding powerlaw distribution of targets...");
-       return_msg = addPowerLawTargets();
-       displayLogMessage(return_msg);
-   }
-   else if (ui.uniform_distribution_radio_button->isChecked())
-   {
-       displayLogMessage("Adding uniform distribution of targets...");
-       return_msg = addUniformTargets();
-       displayLogMessage(return_msg);
-   }
-   else if (ui.clustered_distribution_radio_button->isChecked())
-   {
-       displayLogMessage("Adding clustered distribution of targets...");
-       return_msg = addClusteredTargets();
-       displayLogMessage(return_msg);
-   }
+    ////Test rover movement
+    //displayLogMessage("Moving aeneas");
+    //return_msg = sim_mgr.moveRover("aeneas", 10, 0, 0);
+    //displayLogMessage(return_msg);
 
-   // add walls given nw corner (x,y) and height and width (in meters)
+    //displayLogMessage("Starting the gazebo client to visualize the simulation.");
+    //sim_mgr.startGazeboClient();
 
-   //addWalls(-arena_dim/2, -arena_dim/2, arena_dim, arena_dim);
+    ui.visualize_simulation_button->setEnabled(true);
+    ui.clear_simulation_button->setEnabled(true);
 
-   //   // Test rover movement
-//   displayLogMessage("Moving aeneas");
-//   return_msg = sim_mgr.moveRover("aeneas", 10, 0, 0);
-//   displayLogMessage(return_msg);
+    ui.visualize_simulation_button->setStyleSheet("color: white;border:1px solid white;");
 
-   //displayLogMessage("Starting the gazebo client to visualize the simulation.");
-   //sim_mgr.startGazeboClient();
+    ui.clear_simulation_button->setStyleSheet("color: white;border:1px solid white;");
 
-   ui.visualize_simulation_button->setEnabled(true);
-   ui.clear_simulation_button->setEnabled(true);
+    displayLogMessage("Finished building simulation.");
 
-   ui.visualize_simulation_button->setStyleSheet("color: white;border:1px solid white;");
-
-   ui.clear_simulation_button->setStyleSheet("color: white;border:1px solid white;");
-
-   displayLogMessage("Finished building simulation.");
-
-  // Visualize the simulation by default call button event handler
-   visualizeSimulationButtonEventHandler();
+    // Visualize the simulation by default call button event handler
+    visualizeSimulationButtonEventHandler();
 
 }
 

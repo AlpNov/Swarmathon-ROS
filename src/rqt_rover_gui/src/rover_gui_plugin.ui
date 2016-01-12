@@ -274,7 +274,7 @@ QTabBar::tab:only-one {
         <x>20</x>
         <y>10</y>
         <width>121</width>
-        <height>91</height>
+        <height>131</height>
        </rect>
       </property>
       <property name="styleSheet">
@@ -284,15 +284,15 @@ border-color: rgb(255, 255, 255);</string>
       <property name="title">
        <string>Round Type</string>
       </property>
-      <widget class="QRadioButton" name="joystick_radio_button">
+      <widget class="QRadioButton" name="prelim_radio_button">
        <property name="enabled">
         <bool>true</bool>
        </property>
        <property name="geometry">
         <rect>
-         <x>10</x>
-         <y>30</y>
-         <width>161</width>
+         <x>0</x>
+         <y>60</y>
+         <width>101</width>
          <height>22</height>
         </rect>
        </property>
@@ -303,7 +303,7 @@ border-color: rgb(255, 255, 255);</string>
         <string>Preliminary</string>
        </property>
        <property name="checked">
-        <bool>true</bool>
+        <bool>false</bool>
        </property>
       </widget>
       <widget class="QRadioButton" name="final_radio_button">
@@ -312,8 +312,8 @@ border-color: rgb(255, 255, 255);</string>
        </property>
        <property name="geometry">
         <rect>
-         <x>10</x>
-         <y>60</y>
+         <x>0</x>
+         <y>90</y>
          <width>117</width>
          <height>22</height>
         </rect>
@@ -323,6 +323,50 @@ border-color: rgb(255, 255, 255);</string>
        </property>
        <property name="text">
         <string>Final </string>
+       </property>
+      </widget>
+      <widget class="QRadioButton" name="one_radio_button">
+       <property name="enabled">
+        <bool>true</bool>
+       </property>
+       <property name="geometry">
+        <rect>
+         <x>0</x>
+         <y>30</y>
+         <width>41</width>
+         <height>22</height>
+        </rect>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">color: rgb(255, 255, 255);</string>
+       </property>
+       <property name="text">
+        <string>1</string>
+       </property>
+       <property name="checked">
+        <bool>false</bool>
+       </property>
+      </widget>
+      <widget class="QRadioButton" name="two_radio_button">
+       <property name="enabled">
+        <bool>true</bool>
+       </property>
+       <property name="geometry">
+        <rect>
+         <x>40</x>
+         <y>30</y>
+         <width>41</width>
+         <height>22</height>
+        </rect>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">color: rgb(255, 255, 255);</string>
+       </property>
+       <property name="text">
+        <string>2</string>
+       </property>
+       <property name="checked">
+        <bool>true</bool>
        </property>
       </widget>
      </widget>
