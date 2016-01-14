@@ -253,11 +253,11 @@ void setVelocity(double linearVel, double angularVel)
 void targetHandler(const std_msgs::Int16::ConstPtr& message) {
 	//if target has not previously been detected 
     if (targetDetected.data == -1) {
-        targetDetected = *message;
-        ROS_INFO("Target %03d Detected",targetDetected.data);
+        ROS_INFO("Target %03d Detected",(*message).data);
         //check if target has not yet been collected
-        if (!targetsCollected[targetDetected.data]) { 
+        if (!targetsCollected[(*message).data]) { 
 	        //set angle to center as goal heading
+        	targetDetected.data = (*message).data;
         	ROS_INFO("Target %03d Collecting, Going home",targetDetected.data);
 			goalLocation.theta = M_PI + atan2(currentLocation.y, currentLocation.x);
 			
@@ -272,9 +272,10 @@ void targetHandler(const std_msgs::Int16::ConstPtr& message) {
 			stateMachineState = STATE_MACHINE_TRANSFORM;
 		}
 		else
-			ROS_INFO("Target %03d Collected Already",targetDetected.data);
+			ROS_INFO("Target %03d Collected Already",(*message).data);
     }
-	ROS_INFO("Target %03d Detected, carrying %03d, ignored",(*message).data,targetDetected.data);
+	else
+		ROS_INFO("Target %03d Detected, carrying %03d, ignored",(*message).data,targetDetected.data);
 }
 
 void modeHandler(const std_msgs::UInt8::ConstPtr& message) {
