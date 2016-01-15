@@ -14,6 +14,7 @@
 #include <geometry_msgs/Pose2D.h>
 #include <geometry_msgs/Twist.h>
 #include <nav_msgs/Odometry.h>
+#include "mobility/target.h"
 
 // To handle shutdown signals so the node quits properly in response to "rosnode kill"
 #include <ros/ros.h>
@@ -36,6 +37,9 @@ float status_publish_interval = 5;
 float killSwitchTimeout = 10;
 std_msgs::Int16 targetDetected; //ID of the detected target
 bool targetsCollected [256] = {0}; //array of booleans indicating whether each target ID has been found
+bool targetsDetected [256] = {0};
+float targetsDetected_x[256] ={0};
+float targetsDetected_y[256]={0};
 
 // state machine states
 #define STATE_MACHINE_TRANSFORM	0
@@ -53,6 +57,7 @@ ros::Publisher velocityPublish;
 ros::Publisher stateMachinePublish;
 ros::Publisher status_publisher;
 ros::Publisher targetCollectedPublish;
+ros::Publisher targetDetectedPublish;
 
 //Subscribers
 ros::Subscriber joySubscriber;
@@ -61,6 +66,7 @@ ros::Subscriber targetSubscriber;
 ros::Subscriber obstacleSubscriber;
 ros::Subscriber odometrySubscriber;
 ros::Subscriber targetsCollectedSubscriber;
+ros::Subscriber targetDetectedSubscriber;
 
 //Timers
 ros::Timer stateMachineTimer;
@@ -80,6 +86,7 @@ void mobilityStateMachine(const ros::TimerEvent&);
 void publishStatusTimerEventHandler(const ros::TimerEvent& event);
 void targetsCollectedHandler(const std_msgs::Int16::ConstPtr& message);
 void killSwitchTimerEventHandler(const ros::TimerEvent& event);
+void targetDetectedHandler(const mobility::target target_msg);
 
 int main(int argc, char **argv) {
 
@@ -115,11 +122,14 @@ int main(int argc, char **argv) {
     obstacleSubscriber = mNH.subscribe((publishedName + "/obstacle"), 10, obstacleHandler);
     odometrySubscriber = mNH.subscribe((publishedName + "/odom/ekf"), 10, odometryHandler);
     targetsCollectedSubscriber = mNH.subscribe(("targetsCollected"), 10, targetsCollectedHandler);
+	targetDetectedSubscriber = mNH.subscribe(("targetDetected"),10,targetDetectedHandler);
 
     status_publisher = mNH.advertise<std_msgs::String>((publishedName + "/status"), 1, true);
+
     velocityPublish = mNH.advertise<geometry_msgs::Twist>((publishedName + "/velocity"), 10);
     stateMachinePublish = mNH.advertise<std_msgs::String>((publishedName + "/state_machine"), 1, true);
     targetCollectedPublish = mNH.advertise<std_msgs::Int16>(("targetsCollected"), 1, true);
+	targetDetectedPublish = mNH.advertise<mobility::target>(("targetDetected"),1,true);
 
     publish_status_timer = mNH.createTimer(ros::Duration(status_publish_interval), publishStatusTimerEventHandler);
     killSwitchTimer = mNH.createTimer(ros::Duration(killSwitchTimeout), killSwitchTimerEventHandler);
@@ -162,7 +172,6 @@ void mobilityStateMachine(const ros::TimerEvent&) {
 					}
 					//Otherwise, reset target and select new random uniform heading
 					else {
-        				ROS_INFO("Target %03d Carried Home",targetDetected.data);
 						targetDetected.data = -1;
 						goalLocation.theta = rng->uniformReal(0, 2 * M_PI);
 					}
@@ -251,14 +260,16 @@ void setVelocity(double linearVel, double angularVel)
  ************************/
 
 void targetHandler(const std_msgs::Int16::ConstPtr& message) {
+	
+	mobility::target target_detail;
+	
 	//if target has not previously been detected 
     if (targetDetected.data == -1) {
-        ROS_INFO("Target %03d Detected",(*message).data);
         //check if target has not yet been collected
         if (!targetsCollected[(*message).data]) { 
+        	//assign target to robot
+			targetDetected.data = (*message).data;
 	        //set angle to center as goal heading
-        	targetDetected.data = (*message).data;
-        	ROS_INFO("Target %03d Collecting, Going home",targetDetected.data);
 			goalLocation.theta = M_PI + atan2(currentLocation.y, currentLocation.x);
 			
 			//set center as goal position
@@ -271,11 +282,23 @@ void targetHandler(const std_msgs::Int16::ConstPtr& message) {
 			//switch to transform state to trigger return to center
 			stateMachineState = STATE_MACHINE_TRANSFORM;
 		}
-		else
-			ROS_INFO("Target %03d Collected Already",(*message).data);
     }
-	else
-		ROS_INFO("Target %03d Detected, carrying %03d, ignored",(*message).data,targetDetected.data);
+
+	//check if target has been detected
+	if (!targetsDetected[(*message).data]) {
+		//publish target details to other robot
+		//target location use robot's current location
+		target_detail.ID = (*message).data;
+		target_detail.x = currentLocation.x;
+		target_detail.y = currentLocation.y;
+		targetDetectedPublish.publish(target_detail);
+	}
+}
+
+void targetDetectedHandler(const mobility::target target_msg) {
+	targetsDetected[target_msg.ID] = 1;
+	targetsDetected_x[target_msg.ID] = target_msg.x;
+	targetsDetected_y[target_msg.ID] = target_msg.y;
 }
 
 void modeHandler(const std_msgs::UInt8::ConstPtr& message) {
