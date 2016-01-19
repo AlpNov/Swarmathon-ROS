@@ -358,15 +358,16 @@ void RoverGUIPlugin::targetCollectedEventHandler(const ros::MessageEvent<const s
 
     int target_id = msg->data;
 
-    //if(std::find(targets_collected.begin(), targets_collected.end(), target_id) != targets_collected.end())
-    //{
+    // Don't allow duplicates
+    if(std::find(targets_collected.begin(), targets_collected.end(), target_id) != targets_collected.end())
+    {
         // This target was already collected
-    //}
-    //else
-    //{
+    }
+    else
+    {
         targets_collected.push_back(target_id);
         ui.num_targets_collected_label->setText(QString("<font color='white'>")+QString::number(targets_collected.size())+QString("</font>"));
-    //}
+    }
 }
 
 void RoverGUIPlugin::targetDetectedEventHandler(const ros::MessageEvent<const std_msgs::Int16> &event)
@@ -877,30 +878,28 @@ void RoverGUIPlugin::buildSimulationButtonEventHandler()
         displayLogMessage(return_msg);
         progress_dialog.setValue((n_rovers_created)*100.0f/n_rovers);
         qApp->processEvents(QEventLoop::ExcludeUserInputEvents);
+	}
 
-    }
-
-    if (ui.powerlaw_distribution_radio_button->isChecked())
-    {
-        displayLogMessage("Adding powerlaw distribution of targets...");
-        return_msg = addPowerLawTargets();
-        displayLogMessage(return_msg);
-    }
-    else if (ui.uniform_distribution_radio_button->isChecked())
-    {
-        displayLogMessage("Adding uniform distribution of targets...");
-        return_msg = addUniformTargets();
-        displayLogMessage(return_msg);
-    }
-    else if (ui.clustered_distribution_radio_button->isChecked())
-    {
-        displayLogMessage("Adding clustered distribution of targets...");
-        return_msg = addClusteredTargets();
-        displayLogMessage(return_msg);
-    }
+	if (ui.powerlaw_distribution_radio_button->isChecked())
+	{
+		displayLogMessage("Adding powerlaw distribution of targets...");
+		return_msg = addPowerLawTargets();
+		displayLogMessage(return_msg);
+	}
+	else if (ui.uniform_distribution_radio_button->isChecked())
+	{
+		displayLogMessage("Adding uniform distribution of targets...");
+		return_msg = addUniformTargets();
+		displayLogMessage(return_msg);
+	}
+	else if (ui.clustered_distribution_radio_button->isChecked())
+	{
+		displayLogMessage("Adding clustered distribution of targets...");
+		return_msg = addClusteredTargets();
+		displayLogMessage(return_msg);
+	}
 
     // add walls given nw corner (x,y) and height and width (in meters)
-
     //addWalls(-arena_dim/2, -arena_dim/2, arena_dim, arena_dim);
 
     ////Test rover movement
@@ -915,7 +914,6 @@ void RoverGUIPlugin::buildSimulationButtonEventHandler()
     ui.clear_simulation_button->setEnabled(true);
 
     ui.visualize_simulation_button->setStyleSheet("color: white;border:1px solid white;");
-
     ui.clear_simulation_button->setStyleSheet("color: white;border:1px solid white;");
 
     displayLogMessage("Finished building simulation.");
