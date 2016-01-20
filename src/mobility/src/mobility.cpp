@@ -47,6 +47,7 @@ float targetsDetected_y[256]={0};
 #define STATE_MACHINE_TRANSLATE	2
 int stateMachineState = STATE_MACHINE_TRANSFORM;
 
+#define CAMERA_DISTANCE 1
 geometry_msgs::Twist velocity;
 char host[128];
 string publishedName;
@@ -178,12 +179,37 @@ void mobilityStateMachine(const ros::TimerEvent&) {
 				}
 				//Otherwise, assign a new goal
 				else {
-					 //select new heading from Gaussian distribution around current heading
-					goalLocation.theta = rng->gaussian(currentLocation.theta, 0.25);
-					
-					//select new position 50 cm from current location
-					goalLocation.x = currentLocation.x + (0.5 * cos(goalLocation.theta));
-					goalLocation.y = currentLocation.y + (0.5 * sin(goalLocation.theta));
+					//compute the nearest uncollected target detected so far
+					int targetNext=-1;
+					float minTargetDistance=99999;
+					float targetDistance;
+					for (int i=0 ; i<256 ; i++) {
+						if( targetsDetected[i] && (!targetsCollected[i]) ) {
+							targetDistance=hypot(currentLocation.x - targetsDetected_x[i],
+									currentLocation.y - targetsDetected_y[i]);
+							if ( targetDistance < minTargetDistance ) {
+								minTargetDistance = targetDistance;
+								targetNext = i;
+							}
+						}
+					}
+					//if there is an uncollected target near by, go to that target
+					//else select random heading
+					if ( targetNext != -1 ) {
+						ROS_INFO("Going to target %03d at %7.3f,%7.3f",targetNext,targetsDetected_x[targetNext],targetsDetected_y[targetNext]);
+						goalLocation.theta = atan2(targetsDetected_y[targetNext] - currentLocation.y,
+												   targetsDetected_x[targetNext] - currentLocation.x);
+						goalLocation.x = targetsDetected_x[targetNext];
+						goalLocation.y = targetsDetected_y[targetNext];
+					}
+					else {
+						//select new heading from Gaussian distribution around current heading
+						goalLocation.theta = rng->gaussian(currentLocation.theta, 0.25);
+						
+						//select new position 50 cm from current location
+						goalLocation.x = currentLocation.x + (0.5 * cos(goalLocation.theta));
+						goalLocation.y = currentLocation.y + (0.5 * sin(goalLocation.theta));
+					}
 				}
 				
 				//Purposefully fall through to next case without breaking
@@ -289,8 +315,9 @@ void targetHandler(const std_msgs::Int16::ConstPtr& message) {
 		//publish target details to other robot
 		//target location use robot's current location
 		target_detail.ID = (*message).data;
-		target_detail.x = currentLocation.x;
-		target_detail.y = currentLocation.y;
+		target_detail.x = currentLocation.x + CAMERA_DISTANCE*cos(currentLocation.theta);
+		target_detail.y = currentLocation.y + CAMERA_DISTANCE*sin(currentLocation.theta);
+		ROS_INFO("Target %03d Detected at %7.3f,%7.3f",target_detail.ID,target_detail.x,target_detail.y);
 		targetDetectedPublish.publish(target_detail);
 	}
 }
