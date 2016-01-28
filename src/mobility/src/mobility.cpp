@@ -43,13 +43,13 @@ bool targetsCollected [256] = {0}; //array of booleans indicating whether each t
 #define STATE_MACHINE_TRANSLATE	2
 int stateMachineState = STATE_MACHINE_TRANSFORM;
 
-geometry_msgs::Twist mobility;
+geometry_msgs::Twist velocity;
 char host[128];
 string publishedName;
 char prev_state_machine[128];
 
 //Publishers
-ros::Publisher mobilityPublish;
+ros::Publisher velocityPublish;
 ros::Publisher stateMachinePublish;
 ros::Publisher status_publisher;
 ros::Publisher targetCollectedPublish;
@@ -117,7 +117,7 @@ int main(int argc, char **argv) {
     targetsCollectedSubscriber = mNH.subscribe(("targetsCollected"), 10, targetsCollectedHandler);
 
     status_publisher = mNH.advertise<std_msgs::String>((publishedName + "/status"), 1, true);
-    mobilityPublish = mNH.advertise<geometry_msgs::Twist>((publishedName + "/mobility"), 10);
+    velocityPublish = mNH.advertise<geometry_msgs::Twist>((publishedName + "/velocity"), 10);
     stateMachinePublish = mNH.advertise<std_msgs::String>((publishedName + "/state_machine"), 1, true);
     targetCollectedPublish = mNH.advertise<std_msgs::Int16>(("targetsCollected"), 1, true);
 
@@ -162,6 +162,7 @@ void mobilityStateMachine(const ros::TimerEvent&) {
 					}
 					//Otherwise, reset target and select new random uniform heading
 					else {
+        				ROS_INFO("Target %03d Carried Home",targetDetected.data);
 						targetDetected.data = -1;
 						goalLocation.theta = rng->uniformReal(0, 2 * M_PI);
 					}
@@ -236,12 +237,13 @@ void setVelocity(double linearVel, double angularVel)
   // Stopping and starting the timer causes it to start counting from 0 again.
   // As long as this is called before the kill swith timer reaches killSwitchTimeout seconds
   // the rover's kill switch wont be called.
-  //killSwitchTimer.stop();
-  //killSwitchTimer.start();
+  // uncomment this to disable killswitch message during autonomous
+  killSwitchTimer.stop();
+  killSwitchTimer.start();
   
-  mobility.linear.x = linearVel * 1.5;
-  mobility.angular.z = angularVel * 8; //scaling factor for sim; removed by aBridge node
-  mobilityPublish.publish(mobility);
+  velocity.linear.x = linearVel * 1.5;
+  velocity.angular.z = angularVel * 8; //scaling factor for sim; removed by aBridge node
+  velocityPublish.publish(velocity);
 }
 
 /***********************
@@ -252,10 +254,11 @@ void targetHandler(const std_msgs::Int16::ConstPtr& message) {
 	//if target has not previously been detected 
     if (targetDetected.data == -1) {
         targetDetected = *message;
-        
+        ROS_INFO("Target %03d Detected",targetDetected.data);
         //check if target has not yet been collected
         if (!targetsCollected[targetDetected.data]) { 
 	        //set angle to center as goal heading
+        	ROS_INFO("Target %03d Collecting, Going home",targetDetected.data);
 			goalLocation.theta = M_PI + atan2(currentLocation.y, currentLocation.x);
 			
 			//set center as goal position
@@ -268,7 +271,10 @@ void targetHandler(const std_msgs::Int16::ConstPtr& message) {
 			//switch to transform state to trigger return to center
 			stateMachineState = STATE_MACHINE_TRANSFORM;
 		}
+		else
+			ROS_INFO("Target %03d Collected Already",targetDetected.data);
     }
+	ROS_INFO("Target %03d Detected, carrying %03d, ignored",(*message).data,targetDetected.data);
 }
 
 void modeHandler(const std_msgs::UInt8::ConstPtr& message) {
